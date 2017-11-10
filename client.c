@@ -1,17 +1,7 @@
-/* getfile server that handles only one client at a time */
-#include <stdio.h> /* printf and standard I/O */
-#include <sys/socket.h> /* socket, connect, socklen_t */
-#include <arpa/inet.h> /* sockaddr_in, inet_pton */
-#include <string.h> /* strlen */
-#include <stdlib.h> /* atoi, EXIT_FAILURE */
-#include <fcntl.h> /* 0_WRONLY, O_RDONLY */
-#include <unistd.h> /* close, write, read */
-
-#define SRV_PORT 1610 /* default port number */
-#define MAX_RECV_BUF 256
-#define MAX_SEND_BUF 256
-
-int send_file(int , char*);
+/*
+	created by khanhlt - 10/11/2017
+*/
+#include "lib.h"
 
 int main(int argc, char* argv[]) {
 	int sock_fd;
@@ -52,43 +42,4 @@ int main(int argc, char* argv[]) {
 		exit(EXIT_FAILURE);
 	}
 	return 0;
-}
-
-int send_file (int sock, char* file_name) {
-	int sent_count; /* how many sending chunks, for debugging */
-	ssize_t read_bytes, /* bytes read from local file */
-	sent_bytes,	/* bytes sent to connected socket */
-	sent_file_size;
-	char send_buf[MAX_SEND_BUF]; /* max chunk size for sending file */
-	char *errmsg_notfound = "File not found\n";
-	int f; /* file handle for reading local file */
-
-	sent_count = 0;
-	sent_file_size = 0;
-
-	/* attempt to open requested file for reading */
-	if ((f = open(file_name, O_RDONLY)) < 0) /* can't open requested file */
-	{
-		perror(file_name);
-		if ((sent_bytes = send(sock, errmsg_notfound, strlen(errmsg_notfound), 0)) < 0) {
-			perror("send error");
-			return -1;
-		}
-	}
-	else /*open file successful */
-	{
-		printf("Sending file: %s\n", file_name);
-		while ((read_bytes = read(f, send_buf, MAX_RECV_BUF)) > 0) {
-			if((sent_bytes = send(sock, send_buf, read_bytes, 0)) < read_bytes) {
-				perror("send error");
-				return -1;
-			}
-			sent_count++;
-			sent_file_size += sent_bytes;
-		}
-		close(f);
-	}
-
-	printf("Send done! Sent %d bytes in %d send(s)\n\n", sent_file_size, sent_count);
-	return sent_count;
 }
