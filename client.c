@@ -1,45 +1,95 @@
 /*
-	created by khanhlt - 10/11/2017
+	created by khanhlt - 13/11/2017
+	=====
+	client send - receive file
 */
-#include "lib.h"
 
-int main(int argc, char* argv[]) {
-	int sock_fd;
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/sendfile.h>
+#include <sys/stat.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <string.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <netinet/in.h>
+#include <fcntl.h>
+
+#define PORT 1610
+#define MAX_RECV_BUF 256
+
+int main (int argc, char* argv[]) {
+	int cli_sock;
 	struct sockaddr_in srv_addr;
+	struct stat stat_buf;
+	off_t offset = 0;
 
 	if (argc < 3) {
 		printf("usage: %s <filename> <IP address> [port number]\n", argv[0]);
 		exit(EXIT_FAILURE);
 	}
 
-	memset(&srv_addr, 0, sizeof(srv_addr)); /* zero-fill srv_addr structure */
+	/* zero - fill srv_addr */
+	memset(&srv_addr, 0, sizeof(srv_addr));
 
-	/* create a client socket */
-	sock_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	srv_addr.sin_family = AF_INET; /* internet address family */
+	/* create client socket */
+	cli_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-	/* convert command line argument to numeric IP */
+	/* construct srv_addr struct */
+	srv_addr.sin_family = AF_INET;
 	if (inet_pton(AF_INET, argv[2], &(srv_addr.sin_addr)) < 1) {
-		printf ("Invalid IP address\n");
+		printf("Invalid IP address\n");
 		exit(EXIT_FAILURE);
 	}
 
-	/* if port number supplied, use it, otherwise use SRV_PORT */
-	srv_addr.sin_port = (argc > 3) ? htons(atoi(argv[3])):htons(SRV_PORT);
+	/* if port number supplied, use it, otherwise use PORT */
+	srv_addr.sin_port = (argc > 3) ? htons(atoi(argv[3])) : htons(PORT);
 
-	if (connect(sock_fd, (struct sockaddr*) &srv_addr, sizeof(srv_addr)) < 0) {
+	if (connect(cli_sock, (struct sockaddr*) &srv_addr, sizeof(srv_addr)) < 0) {
 		perror("connect error");
 		exit(EXIT_FAILURE);
 	}
 
-	printf("connected to:%s:%d ...\n", argv[2], SRV_PORT);
+	printf ("connected to : %s:%d ...\n", argv[2], PORT);
 
-	send_file(sock_fd, argv[1]); /* argv[1] = file name */
+	/* open the file to be sent */
+	char* file_name = argv[1];
+	int fd = open(file_name, O_RDONLY);
+	if (fd < 0) {
+		printf("unable to open '%s'\n", file_name);
+	}
+
+	/* get the size of the file to be sent */
+	fstat(fd, &stat_buf);
+
+	/* copy file using sendfile() */
+	offset = 0;
+	if ((sendfile(cli_sock, fd, &offset, stat_buf.st_size)) == -1) {
+		printf("error from sendfile \n");
+		exit(1);
+	}
+
+	/* close file */
+	close(fd);
+	shutdown(cli_sock, SHUT_WR);
+
+	/* recv file from server */
+	FILE *fd_;
+	if ((fd_ = fopen("cli_result.txt", "w")) == NULL) {
+			perror("error creating file");
+			return -1;
+		}
+
+	int len;
+	char buffer[MAX_RECV_BUF + 1];
+	while ((len = recv(cli_sock, buffer, MAX_RECV_BUF, 0)) > 0) {
+		fwrite(buffer, 1, len, fd_);
+	}
+	fclose(fd_);
 
 	/* close socket */
-	if (close(sock_fd) < 0) {
-		perror("socket close error");
-		exit(EXIT_FAILURE);
-	}
+	close(cli_sock);
 	return 0;
 }
