@@ -8,7 +8,7 @@ char b64[]="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/" ;
 
 int encode(char* file_name) {
 	FILE *f_in = fopen(file_name, "r");
-	FILE *f_out = fopen("encoded.txt", "w");
+	FILE *f_out = fopen("final_result.txt", "w");
 
 	// get size of f_in
 	fseek(f_in, 0, SEEK_END);
@@ -62,9 +62,9 @@ int find_b64_code(char c) {
 
 int decode(char* file_name) {
 	FILE *f_in = fopen(file_name, "r");
-	FILE *f_out = fopen("decoded.txt", "w");
+	FILE *f_out = fopen("final_result.txt", "w");
 
-	char buffer[4], a[3];
+	char buffer[4], a[4]="";
 
 	while (fread(buffer, 1, 4, f_in) == 4) {
 		char c1 = (find_b64_code(buffer[0])) << 2 | ((0x30 & find_b64_code(buffer[1])) >> 4);
@@ -73,25 +73,23 @@ int decode(char* file_name) {
 
 		if (buffer[3] == '=') {
 			if (buffer[2] == '=') {
-				a[0] = c1; a[1] = '\0'; a[2] = '\0';
+				a[0] = c1; 
+				a[1] = '\0';
+				a[2] = '\0';
 			}
 			else {
-				a[0] = c1; a[1] = c2; a[2] = '\0';
+				a[0] = c1; a[1] = c2; 
+				a[2] = '\0';
 			}
 
 		} else {
-			a[0] = c1; a[1] = c2; a[2] = c3;
+			a[0] = c1; a[1] = c2; a[2] = c3; a[3] = '\0';
 		}
-		fwrite(a, 1, 3, f_out);
+		fputs(a, f_out);
 	}
+	printf("\n");
 	fclose(f_in);
 	fclose(f_out);
 
-	return 0;
-}
-
-int main() {
-	encode("khanhlt.txt");
-	decode("encoded.txt");
 	return 0;
 }

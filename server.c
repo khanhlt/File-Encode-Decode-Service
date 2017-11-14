@@ -16,6 +16,7 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <fcntl.h>
+#include "base64.h"
 
 #define PORT 1610
 #define MAX_RECV_BUF 256
@@ -67,11 +68,26 @@ int main (int argc, char* argv[]) {
 
 		printf("client connected\n");
 
+		/* receive encode/decode signal */
+		char cli_msg[MAX_RECV_BUF] = "";
+		if (recv(conn_fd, cli_msg, MAX_RECV_BUF, 0) < 0) {
+			printf("unable to receive encode/decode signal\n");
+			close(conn_fd);
+		}
+		printf("%s\n", cli_msg);
+
+		char* reply = "received signal OK!";
+		if (send(conn_fd, reply, sizeof(reply), 0) < 0) {
+			printf("unable to reply\n");
+			close(conn_fd);
+		}
+
 		if ((fd = fopen("srv_result.txt", "w")) == NULL) {
 			perror("error creating file");
 			return -1;
 		}
 
+		/* receive file from client */
 		int len;
 		char buffer[MAX_RECV_BUF + 1];
 		while ((len = recv(conn_fd, buffer, MAX_RECV_BUF, 0)) > 0) {
@@ -79,14 +95,24 @@ int main (int argc, char* argv[]) {
 		}
 		fclose(fd);
 
+		/* encode/decode */
+		if (strcmp(cli_msg,"en") == 0)
+			encode("srv_result.txt");
+		else if (strcmp(cli_msg, "de") == 0)
+			decode("srv_result.txt");
+		else {
+			printf("wrong encode/decode signal\n");
+			close(conn_fd);
+		}
+
 		/* send file back to client */
-		int fd_ = open("srv_result.txt", O_RDONLY);
+		int fd_ = open("final_result.txt", O_RDONLY);
 		struct stat stat_buf;
 		off_t offset = 0;
 		if (fd_ < 0) {
 			printf ("unable to open file\n");
 		}
-		
+
 		/*get the size of the file to be sent */
 		fstat(fd_, &stat_buf);
 		if ((sendfile(conn_fd, fd_, &offset, stat_buf.st_size)) == -1) {

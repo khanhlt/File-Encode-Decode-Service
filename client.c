@@ -26,8 +26,9 @@ int main (int argc, char* argv[]) {
 	struct stat stat_buf;
 	off_t offset = 0;
 
-	if (argc < 3) {
-		printf("usage: %s <filename> <IP address> [port number]\n", argv[0]);
+	if (argc < 4) {
+		printf("usage: %s <filename> <en/de> <IP address> [port number]\n", argv[0]);
+		printf("en: stands for encode\nde: stands for decode\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -39,20 +40,34 @@ int main (int argc, char* argv[]) {
 
 	/* construct srv_addr struct */
 	srv_addr.sin_family = AF_INET;
-	if (inet_pton(AF_INET, argv[2], &(srv_addr.sin_addr)) < 1) {
+	if (inet_pton(AF_INET, argv[3], &(srv_addr.sin_addr)) < 1) {
 		printf("Invalid IP address\n");
 		exit(EXIT_FAILURE);
 	}
 
 	/* if port number supplied, use it, otherwise use PORT */
-	srv_addr.sin_port = (argc > 3) ? htons(atoi(argv[3])) : htons(PORT);
+	srv_addr.sin_port = (argc > 4) ? htons(atoi(argv[4])) : htons(PORT);
 
 	if (connect(cli_sock, (struct sockaddr*) &srv_addr, sizeof(srv_addr)) < 0) {
 		perror("connect error");
 		exit(EXIT_FAILURE);
 	}
 
-	printf ("connected to : %s:%d ...\n", argv[2], PORT);
+	printf ("connected to : %s:%d ...\n", argv[3], PORT);
+
+	// /* send encode/decode signal */
+	if (send(cli_sock, argv[2], strlen(argv[2]), 0) < 0) {
+		printf("error sending encode/decode signal\n");
+		exit(1);
+	}
+
+	/* receive reply from server */
+	char server_reply[MAX_RECV_BUF];
+	if (recv(cli_sock, server_reply, MAX_RECV_BUF, 0) < 0) {
+		printf("server don't receive encode/decode signal\n");
+		exit(1);
+	}
+
 
 	/* open the file to be sent */
 	char* file_name = argv[1];
@@ -73,6 +88,8 @@ int main (int argc, char* argv[]) {
 
 	/* close file */
 	close(fd);
+
+	/* finish sending file */
 	shutdown(cli_sock, SHUT_WR);
 
 	/* recv file from server */
