@@ -12,23 +12,22 @@ int encode(char* file_name) {
 
 	// get size of f_in
 	fseek(f_in, 0, SEEK_END);
-	int sz = ftell(f_in) - 1;
+	int sz = ftell(f_in);
 	rewind(f_in);
 
-	char buffer[3];
+	char buffer[4];
 	int h = sz / 3, k = sz % 3, j = 0;
-	while (j < h)  {
-		fread(buffer, 1, 3, f_in);
+	while (h--)  {
+		fgets(buffer, 4, f_in);
 		char b[4] = { 
 			b64[ buffer[0] >> 2 ] , 
 	        b64[ ((0x03 & buffer[0]) << 4) | ((buffer[1] & 0xf0) >> 4) ] ,
 	        b64[ ((0x0f & buffer[1]) << 2) | ((buffer[2] & 0xc0) >> 6) ] ,
-	        b64[ 0x3f & buffer[2] ] }; 
+	        b64[ 0x3f & buffer[2] ]}; 
 		fprintf(f_out,"%s", b);
-		j ++;
 	}
 	if (k != 0) {
-		fread(buffer, 1, 3, f_in);
+		fgets(buffer, 4, f_in);
 		if (k == 2) {
 			buffer[2] = '\0';
 			char b[4] = {
@@ -87,7 +86,6 @@ int decode(char* file_name) {
 		}
 		fputs(a, f_out);
 	}
-	printf("\n");
 	fclose(f_in);
 	fclose(f_out);
 
