@@ -15,38 +15,39 @@ int encode(char* file_name) {
 	int sz = ftell(f_in);
 	rewind(f_in);
 
-	char buffer[4];
-	int h = sz / 3, k = sz % 3, j = 0;
-	while (h--)  {
-		fgets(buffer, 4, f_in);
-		char b[4] = { 
-			b64[ buffer[0] >> 2 ] , 
-	        b64[ ((0x03 & buffer[0]) << 4) | ((buffer[1] & 0xf0) >> 4) ] ,
-	        b64[ ((0x0f & buffer[1]) << 2) | ((buffer[2] & 0xc0) >> 6) ] ,
-	        b64[ 0x3f & buffer[2] ]}; 
-		fprintf(f_out,"%s", b);
-	}
-	if (k != 0) {
-		fgets(buffer, 4, f_in);
-		if (k == 2) {
-			buffer[2] = '\0';
-			char b[4] = {
-				b64[ buffer[0] >> 2 ] , 
-		        b64[ ((0x03 & buffer[0]) << 4) | ((buffer[1] & 0xf0) >> 4) ] ,
-		        b64[ ((0x0f & buffer[1]) << 2) | ((buffer[2] & 0xc0) >> 6) ] , '='		
-			};
-			fprintf(f_out, "%s", b);
-		}
+	char buf[4];
+	char tmp[3];
+	int i = 0, j = 0;
 
-		if (k == 1) {
-			buffer[1] = '\0';
-			char b[4] = {
-				b64[ buffer[0] >> 2],
-				b64[ ((0x03 & buffer[0]) << 4) | ((buffer[1] & 0xf0) >> 4) ] , '=', '='
-			};
-			fprintf(f_out, "%s", b);
+	while (sz--) {
+		tmp[i++] = fgetc(f_in);
+
+		// when read 3 bytes
+		if (i == 3) {
+			buf[0] = b64[(tmp[0] & 0xfc) >> 2];
+		    buf[1] = b64[((tmp[0] & 0x03) << 4) + ((tmp[1] & 0xf0) >> 4)];
+		    buf[2] = b64[((tmp[1] & 0x0f) << 2) + ((tmp[2] & 0xc0) >> 6)];
+		    buf[3] = b64[tmp[2] & 0x3f];
+			fprintf(f_out, "%s", buf);
+			i = 0;
 		}
 	}
+	if (i == 1) {
+		buf[0] = b64[(tmp[0] & 0xfc) >> 2];
+		buf[1] = b64[((tmp[0] & 0x03) << 4)];
+		buf[2] = '=';
+		buf[3] = '=';
+		fprintf(f_out, "%s", buf);
+	}
+	if (i == 2) {
+		buf[0] = b64[(tmp[0] & 0xfc) >> 2];
+		buf[1] = b64[((tmp[0] & 0x03) << 4) + ((tmp[1] & 0xf0) >> 4)];
+		buf[2] = b64[((tmp[1] & 0x0f) << 2)];
+		buf[3] = '=';
+		fprintf(f_out, "%s", buf);
+	}
+
+	
 	fclose(f_in);
 	fclose(f_out);
 	return 0;
