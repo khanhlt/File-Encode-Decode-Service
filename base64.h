@@ -10,10 +10,10 @@ int encode(char* file_name) {
 	FILE *f_in = fopen(file_name, "r");
 	FILE *f_out = fopen("final_result.txt", "w");
 
-	// get size of f_in
-	fseek(f_in, 0, SEEK_END);
-	int sz = ftell(f_in);
+	int sz=0;
+	while(!feof(f_in)) { fgetc(f_in); sz++;}
 	rewind(f_in);
+	sz--;
 
 	char buf[4];
 	char tmp[3];

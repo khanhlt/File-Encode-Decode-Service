@@ -23,8 +23,11 @@
 int main (int argc, char* argv[]) {
 	int cli_sock;
 	struct sockaddr_in srv_addr;
+
+	/* dung trong ham sendfile */
 	struct stat stat_buf;
 	off_t offset = 0;
+
 	char file_path[MAX_RECV_BUF];
 	char en_or_de[4];
 
@@ -87,12 +90,12 @@ int main (int argc, char* argv[]) {
 	offset = 0;
 	if ((sendfile(cli_sock, fd, &offset, stat_buf.st_size)) == -1) {
 		printf("error from sendfile \n");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	/* close file */
 	close(fd);
-
+    printf("Send file %s to server\n", file_path);
 	/* finish sending file */
 	shutdown(cli_sock, SHUT_WR);
 
@@ -109,7 +112,7 @@ int main (int argc, char* argv[]) {
 		fwrite(buffer, 1, len, fd_);
 	}
 	fclose(fd_);
-
+    printf("Received filed from server. Result in cli_result.txt\n");
 	/* close socket */
 	close(cli_sock);
 	return 0;
