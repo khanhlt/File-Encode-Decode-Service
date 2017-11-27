@@ -5,15 +5,15 @@ Usage:
 1. Compile client & server:  
 
 	``` 
-    **gcc -o client client.c**  
+    gcc -o client client.c  
 
-    **gcc -o server server.c**  
+    gcc -o server server.c  
 
     ```
 2. Run server:  
 
 	``` 
-    **./server PORT_NUMBER**  
+    ./server PORT_NUMBER  
 
     (PORT_NUMBER is optional)  
 
@@ -21,7 +21,7 @@ Usage:
 3. Run client:  
 
 	```  
-    **./client 127.0.0.1 PORT_NUMBER**  
+    ./client 127.0.0.1 PORT_NUMBER  
 
     (PORT_NUMBER is optional, if use PORT_NUMBER, it's must be same as PORT_NUMBER of server)  
 
